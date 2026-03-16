@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MicroSpringBoot - Pagina Estatica</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <main class="container">
+        <section class="hero">
+            <h1>Pagina HTML Estatica</h1>
+            <p>Esta vista se sirve desde el sistema de archivos, sin pasar por reflexion.</p>
+            <a class="button" href="/">Ir al inicio</a>
+        </section>
+
+        <section>
+            <h2>Recurso estatico de imagen</h2>
+            <p>La imagen se publica desde <code>src/main/resources/public</code>.</p>
+            <img src="/test.png" alt="Imagen PNG de prueba" style="max-width: 100%; border-radius: 12px;">
+        </section>
+
+        <section>
+            <h2>Rutas disponibles</h2>
+            <div class="grid">
+                <a class="card" href="/hello"><h3>/hello</h3><p>Hello World del controlador.</p></a>
+                <a class="card" href="/pi"><h3>/pi</h3><p>Valor de PI.</p></a>
+                <a class="card" href="/time"><h3>/time</h3><p>Hora actual del servidor.</p></a>
+                <a class="card" href="/greet"><h3>/greet</h3><p>Saludo con formulario.</p></a>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

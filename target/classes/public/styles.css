@@ -1,0 +1,160 @@
+:root {
+    color-scheme: light;
+    --bg: #f4f7fb;
+    --surface: #ffffff;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --primary: #2563eb;
+    --primary-strong: #1d4ed8;
+    --border: #dbe4f0;
+    --shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--text);
+    background: radial-gradient(circle at top right, #dbeafe 0%, var(--bg) 45%);
+}
+
+.container {
+    max-width: 960px;
+    margin: 32px auto;
+    padding: 28px;
+    background: var(--surface);
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+}
+
+.hero {
+    margin-bottom: 24px;
+}
+
+h1,
+h2,
+h3 {
+    margin-top: 0;
+    line-height: 1.2;
+}
+
+p {
+    color: var(--muted);
+}
+
+.badge {
+    display: inline-block;
+    margin-top: 10px;
+    background: #e0ecff;
+    color: #1e40af;
+    border: 1px solid #bfd6ff;
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    margin-top: 20px;
+}
+
+.card {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    background: #fbfdff;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    border-color: #b7cdf5;
+    box-shadow: 0 10px 24px rgba(37, 99, 235, 0.12);
+}
+
+.card p {
+    margin-bottom: 0;
+}
+
+.button {
+    display: inline-block;
+    margin-top: 14px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--primary);
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 600;
+    padding: 10px 16px;
+    cursor: pointer;
+}
+
+.button:hover {
+    background: var(--primary-strong);
+}
+
+.button.secondary {
+    background: #0f172a;
+}
+
+.button.secondary:hover {
+    background: #020617;
+}
+
+.metric {
+    margin: 10px 0 0;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.greet-form {
+    margin-top: 14px;
+    display: grid;
+    gap: 10px;
+    max-width: 520px;
+}
+
+label {
+    font-weight: 600;
+    color: #0f172a;
+}
+
+input[type="text"] {
+    width: 100%;
+    padding: 11px 12px;
+    border-radius: 10px;
+    border: 1px solid #cbd5e1;
+    outline: none;
+    font-size: 0.98rem;
+}
+
+input[type="text"]:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
+}
+
+.result {
+    margin-top: 14px;
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 10px;
+    padding: 12px;
+    color: #0c4a6e;
+}
+
+code {
+    background: #eef2ff;
+    border-radius: 8px;
+    padding: 2px 6px;
+}
