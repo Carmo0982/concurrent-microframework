@@ -1,6 +1,7 @@
 package org.main;
 
 import java.time.LocalDateTime;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * POJO de ejemplo - Bean cargado por el framework IoC MicroSpringBoot.
@@ -9,16 +10,16 @@ import java.time.LocalDateTime;
 @RestController
 public class HelloController {
 
-    private int visitCount = 0;
+    private final AtomicInteger visitCount = new AtomicInteger(0);
 
     @GetMapping("/")
     public String index() {
-        visitCount++;
+        int currentVisits = visitCount.incrementAndGet();
         String body = ""
                 + "<section class='hero'>"
                 + "<h1>MicroSpringBoot</h1>"
                 + "<p>Microframework Java con enrutamiento por reflexion e IoC.</p>"
-                + "<span class='badge'>Visitas: " + visitCount + "</span>"
+                + "<span class='badge'>Visitas: " + currentVisits + "</span>"
                 + "</section>"
                 + "<section class='grid'>"
                 + "<a class='card' href='/hello'><h3>Hello</h3><p>Respuesta basica del controlador.</p></a>"

@@ -2,8 +2,6 @@ package org.main;
 
 import java.io.File;
 import java.lang.reflect.Method;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -22,7 +20,7 @@ import java.util.Map;
 public class MicroSpringBoot {
 
     private static final Map<String, Method> routeMap = new HashMap<>();
-    private static final Map<String, Object> beanInstances = new HashMap<>();
+    private static final Map<Class<?>, Object> beanInstances = new HashMap<>();
 
     public static void main(String[] args) throws Exception {
         System.out.println("=== MicroSpringBoot ===");
@@ -51,7 +49,7 @@ public class MicroSpringBoot {
 
             System.out.println("Cargando componente: " + clazz.getName());
             Object instance = clazz.getDeclaredConstructor().newInstance();
-            beanInstances.put(clazz.getName(), instance);
+            beanInstances.put(clazz, instance);
 
             for (Method m : clazz.getDeclaredMethods()) {
                 if (m.isAnnotationPresent(GetMapping.class)) {
@@ -66,7 +64,16 @@ public class MicroSpringBoot {
             }
         }
 
-        new HttpServer(35000, routeMap, beanInstances).start();
+        HttpServer server = new HttpServer(35000, routeMap, beanInstances);
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            if (server.isRunning()) {
+                System.out.println("\nApagado solicitado. Cerrando servidor...");
+                server.stop();
+            }
+        }, "microserver-shutdown"));
+
+        server.start();
     }
 
     /**

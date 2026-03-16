@@ -1,48 +1,110 @@
 package org.main;
 
 import java.io.*;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Servidor HTTP simple (tipo Apache) en Java puro.
  * - Sirve archivos estaticos (HTML, PNG) desde src/main/resources/public
  * - Despacha rutas REST a metodos @GetMapping via reflexion
  * - Soporta @RequestParam para inyectar parametros del query string
- * - Atiende multiples solicitudes NO concurrentes (secuencial)
+ * - Atiende multiples solicitudes concurrentes con un pool de workers
+ * - Permite apagado elegante para terminar solicitudes en progreso
  */
 public class HttpServer {
 
     private final int port;
     private final Map<String, Method> routeMap;
-    private final Map<String, Object> beanInstances;
+    private final Map<Class<?>, Object> beanInstances;
+    private final long shutdownTimeoutMillis;
+    private volatile boolean running;
+    private volatile ServerSocket serverSocket;
+    private ExecutorService requestExecutor;
     private static final String STATIC_DIR = "src/main/resources/public";
 
-    public HttpServer(int port, Map<String, Method> routeMap, Map<String, Object> beanInstances) {
+    public HttpServer(int port, Map<String, Method> routeMap, Map<Class<?>, Object> beanInstances) {
+        this(port, routeMap, beanInstances, 10_000);
+    }
+
+    public HttpServer(int port, Map<String, Method> routeMap, Map<Class<?>, Object> beanInstances, long shutdownTimeoutMillis) {
         this.port = port;
-        this.routeMap = routeMap;
-        this.beanInstances = beanInstances;
+        this.routeMap = Collections.unmodifiableMap(new HashMap<>(routeMap));
+        this.beanInstances = Collections.unmodifiableMap(new HashMap<>(beanInstances));
+        this.shutdownTimeoutMillis = shutdownTimeoutMillis;
     }
 
     public void start() throws IOException {
-        ServerSocket serverSocket = new ServerSocket(port);
-        System.out.println("Servidor iniciado en http://localhost:" + port);
-
-        while (true) {
-            Socket client = serverSocket.accept();
-            handleRequest(client);
+        if (running) {
+            return;
         }
+
+        int workers = Math.max(4, Runtime.getRuntime().availableProcessors() * 2);
+        this.requestExecutor = Executors.newFixedThreadPool(workers);
+        this.serverSocket = new ServerSocket(port);
+        this.running = true;
+
+        System.out.println("Servidor iniciado en http://localhost:" + port + " (workers=" + workers + ")");
+
+        try {
+            while (running) {
+                Socket client = serverSocket.accept();
+                requestExecutor.submit(() -> handleRequest(client));
+            }
+        } catch (SocketException e) {
+            if (running) {
+                throw e;
+            }
+        } finally {
+            stop();
+        }
+    }
+
+    public void stop() {
+        if (!running) {
+            return;
+        }
+        running = false;
+
+        if (serverSocket != null && !serverSocket.isClosed()) {
+            try {
+                serverSocket.close();
+            } catch (IOException ignored) {
+            }
+        }
+
+        if (requestExecutor != null) {
+            requestExecutor.shutdown();
+            try {
+                if (!requestExecutor.awaitTermination(shutdownTimeoutMillis, TimeUnit.MILLISECONDS)) {
+                    requestExecutor.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                requestExecutor.shutdownNow();
+            }
+        }
+
+        System.out.println("Servidor detenido correctamente.");
+    }
+
+    public boolean isRunning() {
+        return running;
     }
 
     private void handleRequest(Socket client) {
@@ -93,17 +155,17 @@ public class HttpServer {
     /**
      * Parsea un query string (ej: "name=Juan&age=30") en un Map.
      */
-    private Map<String, String> parseQueryString(String query) throws Exception {
+    private Map<String, String> parseQueryString(String query) {
         Map<String, String> params = new HashMap<>();
         if (query == null || query.isEmpty()) return params;
         for (String pair : query.split("&")) {
             String[] kv = pair.split("=", 2);
             if (kv.length == 2) {
-                String key = URLDecoder.decode(kv[0], "UTF-8");
-                String value = URLDecoder.decode(kv[1], "UTF-8");
+                String key = URLDecoder.decode(kv[0], StandardCharsets.UTF_8);
+                String value = URLDecoder.decode(kv[1], StandardCharsets.UTF_8);
                 params.put(key, value);
             } else if (kv.length == 1) {
-                params.put(URLDecoder.decode(kv[0], "UTF-8"), "");
+                params.put(URLDecoder.decode(kv[0], StandardCharsets.UTF_8), "");
             }
         }
         return params;
@@ -117,13 +179,7 @@ public class HttpServer {
             return;
         }
 
-        Object bean = null;
-        for (Object b : beanInstances.values()) {
-            if (b.getClass() == method.getDeclaringClass()) {
-                bean = b;
-                break;
-            }
-        }
+        Object bean = beanInstances.get(method.getDeclaringClass());
 
         Parameter[] parameters = method.getParameters();
         Object[] args = new Object[parameters.length];
@@ -148,7 +204,15 @@ public class HttpServer {
     }
 
     private void handleStaticFile(OutputStream out, String path) throws IOException {
-        Path filePath = Paths.get(STATIC_DIR, path).normalize();
+        String normalizedPath = path.startsWith("/") ? path.substring(1) : path;
+        Path staticRoot = Paths.get(STATIC_DIR).toAbsolutePath().normalize();
+        Path filePath = staticRoot.resolve(normalizedPath).normalize();
+
+        if (!filePath.startsWith(staticRoot)) {
+            sendResponse(out, 403, "text/plain", "403 Forbidden".getBytes(StandardCharsets.UTF_8));
+            return;
+        }
+
         File file = filePath.toFile();
 
         if (!file.exists() || !file.isFile()) {
