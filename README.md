@@ -2,6 +2,33 @@
 
 Microframework concurrente en Java para exponer endpoints HTTP de forma ligera, con soporte de ejecucion local y despliegue en contenedores Docker.
 
+## Arquitectura
+
+### Arquitectura interna
+
+1. `MicroSpringBoot` escanea el classpath y detecta clases anotadas con `@RestController`.
+2. Cada metodo con `@GetMapping` se registra en un mapa de rutas (`routeMap`).
+3. Se crean instancias de controladores y se almacenan en `beanInstances`.
+4. `HttpServer` abre un `ServerSocket` en el puerto de la aplicacion y acepta conexiones.
+5. Cada solicitud se procesa en paralelo usando un pool de hilos (`ExecutorService`).
+6. Si la ruta coincide, se invoca el metodo del controlador por reflexion; si no, se intenta servir un archivo estatico desde `src/main/resources/public`.
+
+### Arquitectura de despliegue
+
+Usuario -> Internet -> AWS EC2 -> Docker Container -> Aplicacion Web
+
+## Diseno de clases
+
+| Clase | Responsabilidad |
+| --- | --- |
+| `org.main.MicroSpringBoot` | Arranque del framework, escaneo de controladores y registro de rutas. |
+| `org.main.HttpServer` | Servidor HTTP concurrente, parseo de requests, despacho REST y recursos estaticos. |
+| `org.main.HelloController` | Endpoints principales (`/`, `/hello`, `/pi`, `/time`, `/greet`). |
+| `org.main.GreetingController` | Endpoint `/greeting` con parametro `name` por query string. |
+| `org.main.RestController` | Anotacion para marcar clases como controladores. |
+| `org.main.GetMapping` | Anotacion para asociar metodos a rutas GET. |
+| `org.main.RequestParam` | Anotacion para inyectar parametros de consulta en metodos. |
+
 ## Primeros Pasos
 
 Estas instrucciones te permitiran obtener una copia del proyecto y ejecutarla en tu maquina local para desarrollo y pruebas. Consulta la seccion de despliegue para ver notas sobre ejecucion en un entorno productivo.
@@ -203,6 +230,8 @@ http://IP_PUBLICA:42000/hello
 
 ![img_3.png](img/img_3.png)
 
+### Vídeo de prueba del despliegue
+[Screencast 2026-03-16 22:08:09.mp4](img/Screencast%202026-03-16%2022%3A08%3A09.mp4)
 ### Arquitectura del despliegue
 
 Usuario -> Internet -> AWS EC2 -> Docker Container -> Aplicacion Web
@@ -228,7 +257,7 @@ Se usó [SemVer](http://semver.org/) para versionado.
 
 ## Autores
 
-* Santiago Carmona - *Trabajo Inicial* 
+* Santiago Carmona - *Trabajo Inicial*
 
 
 ## Licencia
